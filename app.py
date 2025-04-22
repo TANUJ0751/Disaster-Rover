@@ -14,8 +14,33 @@ channel_id = 2917381
 read_api_key = "2BOXLEMLP4A0B8S9"
 num_results = 100
 refresh_rate = 10
-fields=["MQ2","MQ7","Temprature","Humidity"]
-all_data = []
+fields=["MQ2","MQ7","Temperature","Humidity"]
+
+@st.cache_data(ttl=refresh_rate)
+def fetch_all_data():
+    url = f"https://api.thingspeak.com/channels/{channel_id}/feeds.json?api_key={read_api_key}&results=8000"
+    response = requests.get(url)
+    if response.status_code == 200:
+        feeds = response.json().get("feeds", [])
+        data = {
+            "created_at": [],
+            "MQ2": [],
+            "MQ7": [],
+            "Temperature": [],
+            "Humidity": []
+        }
+        for entry in feeds:
+            data["created_at"].append(entry["created_at"])
+            for i in range(1, 5):
+                data[f"{fields[i-1]}"].append(entry.get(f"{fields[i-1]}"))
+        df = pd.DataFrame(data)
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        for i in range(1, 5):
+            df[f"{fields[i-1]}"] = pd.to_numeric(df[f"{fields[i-1]}"], errors="coerce")
+        return df
+    
+    return pd.DataFrame()
+
 
 # Function to fetch data
 def fetch_field_data(field_num):
@@ -46,7 +71,10 @@ placeholders = [row1_field1, row1_field2, row2_field3, row2_field4]
 
 # Start loop to update in real-time
 loop_counter = 0
-
+# Download CSV
+df_all = fetch_all_data()
+csv = df_all.to_csv(index=False)
+st.download_button("📥 Download All Data (CSV)", data=csv, file_name="thingspeak_full_data.csv", mime="text/csv")
 while True:
     loop_counter += 1
 
@@ -62,9 +90,7 @@ while True:
                 st.markdown(f"#### 📈 {fields[idx]} - No Data")
 
             if timestamps and values:
-                # Add data to all_data list for CSV generation
-                all_data.append([f'Field {field_num}'] + timestamps + values)
-
+                
                 fig = go.Figure(
                     data=go.Scatter(x=timestamps, y=values, mode='lines+markers'),
                     layout=go.Layout(
@@ -80,20 +106,4 @@ while True:
                 st.warning(f"No data for {fields[idx]}")
     
 
-# Display the CSV download button
-    if st.button(f"Download CSV", key=f"download_csv_{loop_counter}"):
-        # Create DataFrame from all_data
-        df = pd.DataFrame(all_data, columns=['Field', 'Timestamp', 'Value'])
-        
-        # Convert DataFrame to CSV
-        csv = df.to_csv(index=False)
-        
-        # Convert CSV to a download link
-        st.download_button(
-            label="Download CSV",
-            data=csv,
-            file_name="thingspeak_data.csv",
-            mime="text/csv",
-            key=f"csv_button_{loop_counter}"  # Unique key for each CSV button
-        )
     time.sleep(refresh_rate)
