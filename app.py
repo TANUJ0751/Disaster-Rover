@@ -12,9 +12,12 @@ st.title("📡 Realtime Rover Data")
 
 channel_id = 2917381
 read_api_key = "2BOXLEMLP4A0B8S9"
-num_results = 100
+num_results = 20
 refresh_rate = 10
+previous_values = [0, 0, 0, 0]
 fields=["MQ2","MQ7","Temperature","Humidity"]
+maxlevel=[100,150,60,50]
+minlevel=[0,0,0,0]
 
 @st.cache_data(ttl=refresh_rate)
 def fetch_all_data():
@@ -40,6 +43,39 @@ def fetch_all_data():
         return df
     
     return pd.DataFrame()
+
+def show_gauge(field_num, latest_value,pv, min_val=0, max_val=100):
+    if latest_value is None:
+        st.warning(f"Field {field_num} has no data to display gauge.")
+        return
+
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=latest_value,
+        delta={
+        'reference': pv,  # Replace with your actual reference value
+        'increasing': {'color': "blue"},
+        'decreasing': {'color': "orange"},
+        'position': "top"  # optional, can be "top" or "bottom"
+        },
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': f"{fields[field_num-1]} Level", 'font': {'size': 22}},
+        gauge={
+            'axis': {'range': [min_val, max_val]},
+            'steps': [
+                {'range': [min_val, max_val * 0.4], 'color': "blue"},
+                {'range': [max_val * 0.4, max_val * 0.75], 'color': "orange"},
+                {'range': [max_val * 0.75, max_val], 'color': "red"}
+            ],
+            'threshold': {
+                'line': {'color': "black", 'width': 6},
+                'thickness': 0.75,
+                'value': latest_value
+            }
+        }
+    ))
+
+    st.plotly_chart(fig, use_container_width=True, key=f"gauge_{field_num}_{loop_counter}")
 
 
 # Function to fetch data
@@ -81,11 +117,13 @@ while True:
     for idx, placeholder in enumerate(placeholders):
         field_num = idx + 1
         timestamps, values, latest_value = fetch_field_data(field_num)
+        
 
         with placeholder.container():
             # Display field with latest value in the title
+            show_gauge(field_num, latest_value,previous_values[idx], min_val=minlevel[idx], max_val=maxlevel[idx])
             if latest_value is not None:
-                st.markdown(f"#### 📈 {fields[idx]} - Latest Value: {latest_value}")
+                st.markdown(f"#### 📈 {fields[idx]} Graph")
             else:
                 st.markdown(f"#### 📈 {fields[idx]} - No Data")
 
@@ -104,6 +142,9 @@ while True:
                 st.plotly_chart(fig, use_container_width=True, key=f"chart_{field_num}_{loop_counter}")
             else:
                 st.warning(f"No data for {fields[idx]}")
+            st.write("----------")
+        if latest_value is not None:
+            previous_values[idx] = latest_value
     
 
     time.sleep(refresh_rate)
