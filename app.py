@@ -90,8 +90,12 @@ def fetch_field_data(field_num):
             value = entry.get(f'field{field_num}')
             if value:
                 timestamps.append(datetime.strptime(entry["created_at"], "%Y-%m-%dT%H:%M:%SZ"))
-                values.append(float(value))
-                latest_value = float(value)  # Update with the latest value
+                if field_num<5:
+                    values.append(float(value))
+                    latest_value = float(value)  # Update with the latest value
+                else:
+                    values.append(value)
+                    latest_value=value
         return timestamps, values, latest_value
     return [], [], None
 
@@ -102,8 +106,11 @@ row1_field2 = col2.empty()
 col3, col4 = st.columns(2)
 row2_field3 = col3.empty()
 row2_field4 = col4.empty()
+col5,col6=st.columns(2)
+row3_field5=col5.empty()
+row3_field6 = col6.empty()
 
-placeholders = [row1_field1, row1_field2, row2_field3, row2_field4]
+placeholders = [ row2_field3, row2_field4,row3_field5,row3_field6]
 
 # Start loop to update in real-time
 loop_counter = 0
@@ -113,6 +120,9 @@ csv = df_all.to_csv(index=False)
 st.download_button("📥 Download All Data (CSV)", data=csv, file_name="thingspeak_full_data.csv", mime="text/csv")
 while True:
     loop_counter += 1
+    # with row1_field1.container():
+    #     mode=fetch_field_data(5)
+    #     st.write(f"Driving Mode : {mode}")
 
     for idx, placeholder in enumerate(placeholders):
         field_num = idx + 1
