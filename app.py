@@ -12,6 +12,8 @@ st.title("📡 Realtime Rover Data")
 
 channel_id = 2917381
 read_api_key = "2BOXLEMLP4A0B8S9"
+ch2=2930711
+rd2="FWXW0URLYLYP7ZVW"
 num_results = 20
 refresh_rate = 10
 previous_values = [0, 0, 0, 0]
@@ -79,7 +81,7 @@ def show_gauge(field_num, latest_value,pv, min_val=0, max_val=100):
 
 
 # Function to fetch data
-def fetch_field_data(field_num):
+def fetch_field_data(field_num,channel_id,read_api_key,num_results):
     url = f"https://api.thingspeak.com/channels/{channel_id}/fields/{field_num}.json?api_key={read_api_key}&results={num_results}"
     response = requests.get(url)
     if response.status_code == 200:
@@ -120,13 +122,13 @@ csv = df_all.to_csv(index=False)
 st.download_button("📥 Download All Data (CSV)", data=csv, file_name="thingspeak_full_data.csv", mime="text/csv")
 while True:
     loop_counter += 1
-    # with row1_field1.container():
-    #     mode=fetch_field_data(5)
-    #     st.write(f"Driving Mode : {mode}")
+    with row1_field1.container():
+        mode=fetch_field_data(5,ch2,rd2,1)
+        st.write(f"Driving Mode : {mode[-1]}")
 
     for idx, placeholder in enumerate(placeholders):
         field_num = idx + 1
-        timestamps, values, latest_value = fetch_field_data(field_num)
+        timestamps, values, latest_value = fetch_field_data(field_num,channel_id,read_api_key,num_results)
         
 
         with placeholder.container():
