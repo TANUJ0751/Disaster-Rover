@@ -5,8 +5,8 @@ from datetime import datetime
 import time
 import pandas as pd
 
-st.set_page_config(page_title="Live ThingSpeak Dashboard", layout="wide")
-st.title("📡 Live ThingSpeak Data (4 Fields, Real-Time)")
+st.set_page_config(page_title="Live Rover Dashboard", layout="wide")
+st.title("📡 Realtime Rover Data")
 
 
 
